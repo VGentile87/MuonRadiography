@@ -1,0 +1,789 @@
+//
+// ********************************************************************
+// * License and Disclaimer                                           *
+// *                                                                  *
+// * The  Geant4 software  is  copyright of the Copyright Holders  of *
+// * the Geant4 Collaboration.  It is provided  under  the terms  and *
+// * conditions of the Geant4 Software License,  included in the file *
+// * LICENSE and available at  http://cern.ch/geant4/license .  These *
+// * include a list of copyright holders.                             *
+// *                                                                  *
+// * Neither the authors of this software system, nor their employing *
+// * institutes,nor the agencies providing financial support for this *
+// * work  make  any representation or  warranty, express or implied, *
+// * regarding  this  software system or assume any liability for its *
+// * use.  Please see the license in the file  LICENSE  and URL above *
+// * for the full disclaimer and the limitation of liability.         *
+// *                                                                  *
+// * This  code  implementation is the result of  the  scientific and *
+// * technical work of the GEANT4 collaboration.                      *
+// * By using,  copying,  modifying or  distributing the software (or *
+// * any work based  on the software)  you  agree  to acknowledge its *
+// * use  in  resulting  scientific  publications,  and indicate your *
+// * acceptance of all terms of the Geant4 Software license.          *
+// ********************************************************************
+//
+/// \file eventgenerator/HepMC/HepMCEx01/src/ExN04DetectorConstruction.cc
+/// \brief Implementation of the ExN04DetectorConstruction class
+//
+// $Id: ExN04DetectorConstruction.cc 77801 2013-11-28 13:33:20Z gcosmo $
+//
+
+#include "G4Box.hh"
+#include "G4Colour.hh"
+#include "G4Element.hh"
+#include "G4ElementTable.hh"
+#include "G4FieldManager.hh"
+#include "G4LogicalVolume.hh"
+#include "G4Material.hh"
+#include "G4MaterialTable.hh"
+#include "G4PVParameterised.hh"
+#include "G4PVPlacement.hh"
+#include "G4ThreeVector.hh"
+#include "G4Tubs.hh"
+#include "G4RotationMatrix.hh"
+#include "G4Transform3D.hh"
+#include "G4TransportationManager.hh"
+#include "G4SDManager.hh"
+#include "G4SystemOfUnits.hh"
+#include "G4VisAttributes.hh"
+#include "ExN04CalorimeterParametrisation.hh"
+#include "ExN04CalorimeterROGeometry.hh"
+#include "ExN04CalorimeterSD.hh"
+#include "ExN04DetectorConstruction.hh"
+#include "ExN04Field.hh"
+#include "ExN04MuonSD.hh"
+#include "ExN04TrackerParametrisation.hh"
+#include "ExN04TrackerSD.hh"
+
+
+#include "G4Material.hh"
+#include "G4NistManager.hh"
+
+#include "G4Box.hh"
+#include "G4Sphere.hh"
+#include "G4Tubs.hh"
+#include "G4LogicalVolume.hh"
+#include "G4PVPlacement.hh"
+#include "G4PVReplica.hh"
+
+#include "G4GeometryManager.hh"
+#include "G4PhysicalVolumeStore.hh"
+#include "G4LogicalVolumeStore.hh"
+#include "G4SolidStore.hh"
+
+#include "G4VisAttributes.hh"
+#include "G4Colour.hh"
+#include "G4SystemOfUnits.hh"
+#include "G4RunManager.hh"
+#include "G4PhysicalConstants.hh"
+#include "G4SubtractionSolid.hh"
+#include "G4UnionSolid.hh"
+
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+ExN04DetectorConstruction::ExN04DetectorConstruction()
+{
+  //#include "ExN04DetectorParameterDef.icc"
+  DefineMaterials();
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+ExN04DetectorConstruction::~ExN04DetectorConstruction()
+{
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+void ExN04DetectorConstruction::DefineMaterials()
+{
+  //-------------------------------------------------------------------------
+  // Materials
+  //-------------------------------------------------------------------------
+
+   //
+  // Database Material
+  //
+  
+  G4NistManager* nistManager = G4NistManager::Instance();
+  nistManager->SetVerbose(1);
+  nistManager->FindOrBuildMaterial("G4_POLYETHYLENE"); // plates 
+  nistManager->FindOrBuildMaterial("G4_WATER");   // shielding
+  nistManager->FindOrBuildMaterial("G4_POLYSTYRENE");  // base emulsion
+  nistManager->FindOrBuildMaterial("G4_Pb");  //  lead
+  nistManager->FindOrBuildMaterial("G4_Fe");
+  nistManager->FindOrBuildMaterial("G4_Cu");  
+  nistManager->FindOrBuildMaterial("G4_PLEXIGLASS");
+  nistManager->FindOrBuildMaterial("G4_AIR");  
+
+  //
+  // Material Properties
+  //
+  
+  G4double a;  // mass of a mole;
+  G4double z;  // z=mean number of protons;  
+  G4double density, opera_density, opera_base_density;
+  G4double fractionmass;
+  G4String name, symbol; 
+  G4int ncomponents, natoms;
+  G4int base_ncomponents;
+
+  //
+  // Emulsion Component  
+  //
+  
+  a = 126.9*g/mole;
+  G4Element* elI  = new G4Element(name="Iodium", symbol="I", z=53., a);
+  
+  a = 107.9*g/mole;
+  G4Element* elAg  = new G4Element(name="Silver", symbol="Ag", z=47., a);
+
+  a = 79.9*g/mole;
+  G4Element* elBr  = new G4Element(name="Bromine", symbol="Br", z=35., a);
+  
+  a = 32.1*g/mole;
+  G4Element* elS  = new G4Element(name="Sulphur", symbol="S", z=16., a);
+  
+  a = 16.00*g/mole;
+  G4Element* elO  = new G4Element(name="Oxygen", symbol="O", z=8., a);
+
+  a = 14.01*g/mole;
+  G4Element* elN  = new G4Element(name="Nitrogen", symbol="N", z= 7., a);
+  
+  a = 12.00*g/mole;
+  G4Element* elC  = new G4Element(name="Carbon", symbol="C", z= 6., a);
+
+  a = 1.01*g/mole;
+  G4Element* elH  = new G4Element(name="Hydrogen",symbol="H" , z= 1., a);
+
+  //
+  // NIT EMULSION MATERIAL
+  //
+  
+  density = 3.43*g/cm3; // NIT Emulsion
+  G4Material* Emulsion = new G4Material(name="Emulsion", density, ncomponents=8);
+
+  //
+  // Fraction Mass NIT
+  //
+  
+  Emulsion->AddElement(elAg,fractionmass=0.44065);
+  Emulsion->AddElement(elBr,fractionmass=0.32190);
+  Emulsion->AddElement(elI, fractionmass=0.01875);
+  Emulsion->AddElement(elC, fractionmass=0.1012);
+  Emulsion->AddElement(elO, fractionmass=0.0741);
+  Emulsion->AddElement(elN, fractionmass=0.0268);
+  Emulsion->AddElement(elH, fractionmass=0.0163);
+  Emulsion->AddElement(elS, fractionmass=0.0003);
+
+
+  ///// OPERA EMULSION
+
+
+  opera_density = 2.7088*g/cm3;
+  G4Material* Opera_Emulsion = new G4Material(name="Opera Emulsion",opera_density, ncomponents=8);
+  Opera_Emulsion->AddElement(elI, fractionmass=0.0810);
+  Opera_Emulsion->AddElement(elAg,fractionmass=0.3834);
+  Opera_Emulsion->AddElement(elBr,fractionmass=0.2786);
+  Opera_Emulsion->AddElement(elS, fractionmass=0.0090);
+  Opera_Emulsion->AddElement(elO, fractionmass=0.1243);
+  Opera_Emulsion->AddElement(elN, fractionmass=0.0481);
+  Opera_Emulsion->AddElement(elC, fractionmass=0.1300);
+  Opera_Emulsion->AddElement(elH, fractionmass=0.0240);
+
+
+  //// OPERA BASE PLASTIC
+  G4Material* TAC = new G4Material("TAC", opera_base_density= 1.1919*g/cm3, ncomponents=3);
+  TAC->AddElement(elC, natoms=28); 
+  TAC->AddElement(elH, natoms=38);
+  TAC->AddElement(elO, natoms=19);
+
+  
+
+  //
+  // World Material
+  //
+  
+  new G4Material("Galactic", z=1., a=1.01*g/mole,density= universe_mean_density,
+		 kStateGas, 2.73*kelvin, 3.e-18*pascal);
+ 
+
+  //PMMA C5H8O2 ( Acrylic )
+  // -------------
+  G4double ACRdensity = 1.19*g/cm3;
+  G4Material* Acrylic = new G4Material(name="Acrylic", ACRdensity, base_ncomponents=3);
+  Acrylic->AddElement(elC, 5);
+  Acrylic->AddElement(elH, 8);
+  Acrylic->AddElement(elO, 2);
+  
+
+  G4Material* Polystyrene = new G4Material("Polystyrene", density= 1.050*g/cm3, ncomponents=2);
+  Polystyrene->AddElement(elC, natoms=8); 
+  Polystyrene->AddElement(elH, natoms=8);
+
+  // Print materials
+  G4cout << *(G4Material::GetMaterialTable()) << G4endl;  
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+G4VPhysicalVolume* ExN04DetectorConstruction::Construct()
+{
+
+  ///// Physical Parameters /////
+
+  //
+  // Get materials
+  //
+  
+  G4Material* defaultMaterial = G4Material::GetMaterial("Galactic");
+  G4Material* airMaterial = G4Material::GetMaterial("G4_AIR");           
+  G4Material* emulsionMaterial = G4Material::GetMaterial("Emulsion");            
+  //G4Material* baseMaterial = G4Material::GetMaterial("G4_POLYSTYRENE");
+  G4Material* baseMaterial = G4Material::GetMaterial("Acrylic");
+  //G4Material* plateMaterial = G4Material::GetMaterial("G4_WATER");
+  G4Material* plateMaterial = G4Material::GetMaterial("G4_POLYETHYLENE");
+  G4Material* leadMaterial = G4Material::GetMaterial("G4_Pb");
+  G4Material* supportMaterial = G4Material::GetMaterial("G4_Fe");
+  G4Material* coolingMaterial = G4Material::GetMaterial("G4_Cu");
+  G4Material* nitrogen_box_Material = G4Material::GetMaterial("G4_PLEXIGLASS");
+  G4Material* opera_emulsionMaterial = G4Material::GetMaterial("Opera Emulsion");			
+  G4Material* operabaseMaterial = G4Material::GetMaterial("TAC");
+  
+  
+
+  if ( ! defaultMaterial ) {
+    G4ExceptionDescription msg;
+    msg << "Cannot retrieve materials already defined."; 
+    G4Exception("B4ExN04DetectorConstruction::DefineVolumes()",
+      "MyCode0001", FatalException, msg);
+  }  
+
+ 
+  /////  Geometrical Parameters /////
+
+  //
+  //Dimensioni del mondo
+  //
+  
+  G4double worldSizeX = 20 *m;
+  G4double worldSizeY = 20 *m;
+  G4double worldSizeZ = 20 *m; 
+
+  //
+  // Detector
+  //
+  
+  //G4double baseThickness  = 175*um; // PLASTIC
+  G4double baseThickness  = 1*mm;  //PMMA  --- SLIDE GLASS
+  G4double layerThickness = 50*um;
+  G4double emuSizeX       = 12.0*cm; //12.0*cm;  
+  G4double emuSizeY       = 10.0*cm; //10.0*cm;
+  G4int nFilm             = 5;//45;//45;//150;   //envir //cosmog
+  G4double distance = 0;//5*mm;
+  G4double filmThickness   = baseThickness+layerThickness+distance; //*2 se double coated
+  G4double detThickness   = filmThickness*nFilm;
+
+  //
+  // Poly1 Box
+  //
+
+  G4double poly1Thickness = 21*cm; //10.5*cm;
+  G4double poly1X = 92.5*cm; //71.5*cm; 
+  G4double poly1Y = 92.5*cm; //71.5*cm; 
+  G4double poly1Z = 61.2*cm;
+
+  //
+  // Poly2 Box
+  //
+
+  G4double poly2Thickness = 10.5*cm;
+  G4double poly2X = 129.3*cm; 
+  G4double poly2Y = 129.3*cm; 
+  G4double poly2Z = 61.2*cm;
+
+  //
+  // Poly3 Box
+  //
+
+  G4double poly3Thickness = 10.5*cm;
+  G4double poly3X = 50.5*cm; //101 
+  G4double poly3Y = 50.5*cm; //101
+
+
+  //
+  // PolyTop 2 
+  //
+
+  G4double polyTop2X = 122*cm; 
+  G4double polyTop2Y = 122*cm;
+
+  
+  //
+  // Shielding Bottom plate
+  //
+
+  G4double bigplateX = 244*cm;
+  G4double bigplateY = 244*cm;
+  G4double plateThickness = 10.5*cm;
+
+
+  //
+  // Nitrogen Box
+  //
+  
+  G4double nitrogenThickness = 1*cm;
+  G4double nitrogenX = 50.5*cm; 
+  G4double nitrogenY = 50.5*cm; 
+  G4double nitrogenZ = 50.5*cm;
+
+
+  
+
+  //
+  // Brick Dimension
+  //
+
+  G4double brickY = 12.8*cm;
+  G4double brickX = 10.2*cm;
+  G4double brickZ = 7.9*cm;
+
+  //
+  // Lead Dimension
+  //
+  
+  G4double leadY = 12.5*cm;
+  G4double leadX = 10.2*cm;
+  G4double leadZ = 1*mm;
+
+  //
+  // Opera Dimension
+  //
+  
+  G4double opera_baseThickness  = 0.205*mm;
+  G4double opera_layerThickness = 40*um;
+  G4double opera_emuSizeY      = 12.5*cm;  
+  G4double opera_emuSizeX       = 10.2*cm;
+  G4int opera_nFilm             = 56;
+  G4double opera_cellThickness   = opera_baseThickness+opera_layerThickness*2+leadZ;
+
+
+  //
+  // Cooling Dimension
+  //
+  
+  G4double coolingX = 20*cm;
+  G4double coolingY = 20*cm;
+  G4double coolingZ = 15*cm;
+  G4double in_coolingX = 18*cm;
+  G4double in_coolingY = 18*cm;
+  G4double in_coolingZ = 5*cm;
+
+
+  
+    
+  //     
+  // World
+  //
+  
+  G4VSolid* worldS 
+    = new G4Box("World", worldSizeX/2, worldSizeY/2, worldSizeZ/2);                      
+  G4LogicalVolume* worldLV
+    = new G4LogicalVolume(worldS, airMaterial,"World");
+                                   
+  G4VPhysicalVolume* worldPV
+    = new G4PVPlacement(0, G4ThreeVector(),worldLV,                         
+                 "World", 0, false, 0, fCheckOverlaps); 
+  
+  //                               
+  // Emulsion Detector
+  //
+  
+  G4VSolid* detectorS 
+    = new G4Box("Detector", emuSizeX/2, emuSizeY/2, detThickness/2);
+                         
+  G4LogicalVolume* detectorLV
+    = new G4LogicalVolume(detectorS, defaultMaterial, "Detector"); 
+                                   
+  fDetectorPV
+    = new G4PVPlacement(0, G4ThreeVector(0., 0.,0./*(-poly1Z + 2*poly3Thickness + 2*nitrogenThickness + 2*in_coolingZ + detThickness)/2.*/),
+			//			 = new G4PVPlacement(0, G4ThreeVector(0., 0., 0.), //per le sorgenti alpha e beta
+			detectorLV, "Detector", worldLV,  
+			false, 0, fCheckOverlaps); 
+  //                               
+  // Emulsion Film
+  //
+  
+  G4VSolid* filmS 
+    = new G4Box("Film", emuSizeX/2, emuSizeY/2, filmThickness/2);
+  
+  G4LogicalVolume* filmLV
+    = new G4LogicalVolume(filmS,defaultMaterial, "Film");
+  
+  new G4PVReplica("Film", filmLV, detectorLV,
+		  kZAxis, nFilm, filmThickness);
+
+  //                               
+  // Layers
+  //
+ 
+   G4VSolid* emulsionS 
+    = new G4Box("Emulsion", emuSizeX/2, emuSizeY/2, layerThickness/2);
+                         
+  G4LogicalVolume* emulsionLV
+    = new G4LogicalVolume(emulsionS, emulsionMaterial, "Emulsion"); 
+  
+  fEmulsionTopPV
+     = new G4PVPlacement(0, G4ThreeVector(0., 0.,filmThickness/2 - layerThickness/2),  
+			 //			= new G4PVPlacement(0, G4ThreeVector(0., 0.,0.),         // per sorgenti alpha beta
+			emulsionLV, "TopEmulsion", filmLV,
+			false, 0, fCheckOverlaps);
+
+  //
+  // Plastic base
+  //
+ 
+  G4VSolid* baseS 
+    = new G4Box("Base", emuSizeX/2, emuSizeY/2, baseThickness/2);
+  
+  G4LogicalVolume* baseLV
+    = new G4LogicalVolume(baseS, baseMaterial, "Base"); 
+  
+  fBasePV
+     = new G4PVPlacement(0, G4ThreeVector(0., 0.,filmThickness/2 - layerThickness - baseThickness/2),  
+			 // = new G4PVPlacement(0, G4ThreeVector(0., 0.,-layerThickness/2. - baseThickness/2), // per sorgenti alpha beta
+			baseLV, "Base", filmLV,false, 0, fCheckOverlaps);
+
+  
+  //     
+  // Cooling System
+  //
+  
+  G4Box *outerCooling_box = new G4Box("Outer Cooling box",coolingX/2.,coolingY/2.,coolingZ/2.); 
+  G4Box *innerCooling_box = new G4Box("Inner Cooling box",in_coolingX/2.,in_coolingY/2.,in_coolingZ/2.); 
+  G4SubtractionSolid *cooling_box = new G4SubtractionSolid("Cooling box",outerCooling_box,innerCooling_box);
+
+  
+  G4LogicalVolume* cooling_box_LV
+    = new G4LogicalVolume(cooling_box,coolingMaterial,"Cooling box"); 
+  
+  fCooling_boxPV
+    = new G4PVPlacement(0, G4ThreeVector(0., 0.,0./*(-poly1Z + 2*poly3Thickness + 2*nitrogenThickness + coolingZ)/2.*/),
+    cooling_box_LV, "Cooling box", worldLV,false, 0, fCheckOverlaps);
+
+  
+  /*
+  //
+  // Nitrogen box
+  //
+  
+  G4Box *outerNitrogen_box = new G4Box("Outer Nitrogen box",nitrogenX/2.,nitrogenY/2.,nitrogenZ/2.); 
+  G4Box *innerNitrogen_box = new G4Box("Inner Nitrogen box",(nitrogenX-2*nitrogenThickness)/2.,(nitrogenY-2*nitrogenThickness)/2.,(nitrogenZ-2*nitrogenThickness)/2.); 
+  G4SubtractionSolid *nitrogen_box = new G4SubtractionSolid("Nitrogen box",outerNitrogen_box,innerNitrogen_box);
+
+  
+  G4LogicalVolume* nitrogen_box_LV
+    = new G4LogicalVolume(nitrogen_box,nitrogen_box_Material,"Nitrogen box"); 
+  
+  fNitrogen_boxPV
+    = new G4PVPlacement(0, G4ThreeVector(0., 0.,(-poly1Z + 2*poly3Thickness + nitrogenZ)/2.),
+    nitrogen_box_LV, "Nitrogen box", worldLV,false, 0, fCheckOverlaps);
+  
+  */
+  
+  //
+  // Poly1 box
+  //
+  
+  G4Box *outerPoly1 = new G4Box("Outer Poly1",poly1X/2.,poly1Y/2.,poly1Z/2.); 
+  G4Box *innerPoly1 = new G4Box("Inner Poly1",(poly1X-2*poly1Thickness)/2.,(poly1Y-2*poly1Thickness)/2.,(poly1Z/2.+0.1*mm));
+  G4SubtractionSolid *poly1 = new G4SubtractionSolid("Poly1",outerPoly1,innerPoly1);
+  
+  G4LogicalVolume* poly1_LV
+    = new G4LogicalVolume(poly1,plateMaterial,"Poly1"); 
+  
+  fPoly1PV
+    = new G4PVPlacement(0, G4ThreeVector(0., 0.,0.),
+		        poly1_LV, "Poly1", worldLV,false, 0, fCheckOverlaps);
+  
+  
+  //
+  // Poly2 box
+  //
+  
+  G4Box *outerPoly2 = new G4Box("Outer Poly2",poly2X/2.,poly2Y/2.,poly2Z/2.); 
+  G4Box *innerPoly2 = new G4Box("Inner Poly2",(poly2X-2*poly2Thickness)/2.,(poly2Y-2*poly2Thickness)/2.,(poly2Z/2.+0.1*mm));
+  G4SubtractionSolid *poly2 = new G4SubtractionSolid("Poly2",outerPoly2,innerPoly2);
+  
+  G4LogicalVolume* poly2_LV
+    = new G4LogicalVolume(poly2,plateMaterial,"Poly2"); 
+  
+  fPoly2PV
+    = new G4PVPlacement(0, G4ThreeVector(0.,0.,0.),
+		        poly2_LV, "Poly2", worldLV,false, 0, fCheckOverlaps);
+  
+  //
+  // Poly3 box
+  //
+ 
+  G4VSolid* poly3S 
+    = new G4Box("Poly3", poly3X/2, poly3Y/2, poly3Thickness/2);
+  
+  G4LogicalVolume* poly3_LV
+    = new G4LogicalVolume(poly3S, plateMaterial, "Poly3"); 
+  
+  fPoly3PV
+    = new G4PVPlacement(0, G4ThreeVector(0., 0.,(-poly1Z + poly3Thickness)/2.),
+			poly3_LV, "Poly3", worldLV,false, 0, fCheckOverlaps);
+
+  
+  //
+  // PolyTop box
+  //
+ 
+  G4VSolid* polyTopS 
+    = new G4Box("PolyTop", polyTop2X/2, polyTop2Y/2, plateThickness);
+  
+  G4LogicalVolume* polyTop_LV
+    = new G4LogicalVolume(polyTopS, plateMaterial, "PolyTop"); 
+  
+  fPolyTopPV
+    = new G4PVPlacement(0, G4ThreeVector(0., 0.,(poly1Z + 4*plateThickness)/2. + brickZ),
+			polyTop_LV, "PolyTop", worldLV,false, 0, fCheckOverlaps);
+
+  //
+  // PolyTop2 box
+  //
+ 
+  G4VSolid* polyTop2S 
+    = new G4Box("PolyTop2", polyTop2X/2., polyTop2Y/2., plateThickness/2.);
+  
+  G4LogicalVolume* polyTop2_LV
+    = new G4LogicalVolume(polyTop2S, plateMaterial, "PolyTop2"); 
+  
+  fPolyTop2PV
+    = new G4PVPlacement(0, G4ThreeVector(0., 0.,(poly1Z + plateThickness)/2.),
+			polyTop2_LV, "PolyTop2", worldLV,false, 0, fCheckOverlaps);
+  
+
+  //                               
+  // Shielding Bot Polyethilene Plate 
+  //
+  
+  G4VSolid* plateBot 
+    = new G4Box("Bottom Polyethylene",(bigplateX)/2.,(bigplateY)/2.,((plateThickness)*2)/2.);
+                         
+  G4LogicalVolume* plateBotLV
+    = new G4LogicalVolume(plateBot, defaultMaterial, "Bottom Polyethylene"); 
+  
+  fplateBotPV
+    = new G4PVPlacement(0, G4ThreeVector(0., 0.,-poly1Z/2. - brickZ - plateThickness),
+			plateBotLV, "Bottom Polyethylene", worldLV,  
+		 false, 0, fCheckOverlaps); 
+                               
+  
+  
+  G4VSolid* bot_plate 
+    = new G4Box("Bottom Poyethylene",(bigplateX)/2.,(bigplateY)/2.,(plateThickness)/2.);
+  
+  G4LogicalVolume* bot_shieldingLV
+    = new G4LogicalVolume(bot_plate,plateMaterial,"Bottom Polyethylene"); 
+  
+  new G4PVReplica("Bottom Plate", bot_shieldingLV, plateBotLV,
+		  kZAxis, 2, plateThickness);
+
+  
+  ///// FLOOR AND ROOF
+  
+  
+
+  G4double positionZ_floor = -poly1Z/2. - brickZ/2.; 
+  G4double positionZ_roof = poly1Z/2. + plateThickness + brickZ/2.;
+  
+
+
+  G4RotationMatrix *rot  = new G4RotationMatrix();
+  rot->rotateY(-90*deg);
+
+  G4RotationMatrix *rot2  = new G4RotationMatrix();
+  rot2->rotateX(90*deg);
+  rot2->rotateY(0*deg);
+  rot2->rotateZ(90*deg);
+  
+  G4int nBrickZ_side1=6;//14;
+  G4int nBrickY_side1=7;//12;
+  G4double positionX_side1 = -poly1X/2. - brickZ/2.;
+  G4double positionY_side1 = -poly1Y/2. + brickY/2. - (brickY*nBrickY_side1 - poly1Y)/2.;
+  G4double positionZ_side1 = - (poly1Z-brickX*nBrickZ_side1)/2.;
+
+  G4int nBrickZ_side3=6;//14;
+  G4int nBrickX_side3=8;//11;
+  G4double positionX_side3 = -poly1X/2. + brickY/2. + (poly1X-brickY*nBrickX_side3)/2.;
+  G4double positionY_side3 = -poly1Y/2. - brickZ/2.;
+  G4double positionZ_side3 = - (poly1Z-brickX*nBrickZ_side1)/2.;
+
+  
+  
+  /////////////
+  G4VSolid* leadfloorS 
+    = new G4Box("lead_floor",(brickX*13)/2.,(brickY*11)/2.,(brickZ)/2.);
+                         
+  G4LogicalVolume* leadfloorLV
+    = new G4LogicalVolume(leadfloorS, leadMaterial, "lead_floor"); 
+  
+  fleadfloorPV
+    = new G4PVPlacement(0, G4ThreeVector(0.,0.,positionZ_floor),
+			leadfloorLV, "lead_floor", worldLV,  
+		 false, 0, fCheckOverlaps);
+  /////////////
+  G4VSolid* leadroofS 
+    = new G4Box("lead_roof",(brickX*11)/2.,(brickY*9)/2.,(brickZ)/2.);
+                         
+  G4LogicalVolume* leadroofLV
+    = new G4LogicalVolume(leadroofS, leadMaterial, "lead_roof"); 
+  
+  fleadroofPV
+    = new G4PVPlacement(0, G4ThreeVector(0.,0.,positionZ_roof),
+			leadroofLV, "lead_roof", worldLV,  
+		 false, 0, fCheckOverlaps);
+   /////////////
+  G4VSolid* leadside1S 
+    = new G4Box("lead_side1",(brickX*6)/2.,(brickY*7)/2.,(brickZ)/2.);
+                         
+  G4LogicalVolume* leadside1LV
+    = new G4LogicalVolume(leadside1S, leadMaterial, "lead_side1"); 
+  
+  fleadside1PV
+    = new G4PVPlacement(rot, G4ThreeVector(positionX_side1,0.,positionZ_side1),
+			leadside1LV, "lead_side1", worldLV,  
+		 false, 0, fCheckOverlaps);
+   /////////////
+  G4VSolid* leadside2S 
+    = new G4Box("lead_side2",(brickX*6)/2.,(brickY*7)/2.,(brickZ)/2.);
+                         
+  G4LogicalVolume* leadside2LV
+    = new G4LogicalVolume(leadside2S, leadMaterial, "lead_side2"); 
+  
+  fleadside2PV
+    = new G4PVPlacement(rot, G4ThreeVector(-positionX_side1,0.,positionZ_side1),
+			leadside2LV, "lead_side2", worldLV,  
+		 false, 0, fCheckOverlaps);
+   /////////////
+  G4VSolid* leadside3S 
+    = new G4Box("lead_side3",(brickX*6)/2.,(brickY*8)/2.,(brickZ)/2.);
+                         
+  G4LogicalVolume* leadside3LV
+    = new G4LogicalVolume(leadside3S, leadMaterial, "lead_side3"); 
+  
+  fleadside3PV
+    = new G4PVPlacement(rot2, G4ThreeVector(0.,positionY_side3,positionZ_side3),
+			leadside3LV, "lead_side3", worldLV,  
+		 false, 0, fCheckOverlaps);
+
+   /////////////
+  G4VSolid* leadside4S 
+    = new G4Box("lead_side4",(brickX*6)/2.,(brickY*8)/2.,(brickZ)/2.);
+                         
+  G4LogicalVolume* leadside4LV
+    = new G4LogicalVolume(leadside4S, leadMaterial, "lead_side4"); 
+  
+  fleadside4PV
+    = new G4PVPlacement(rot2, G4ThreeVector(0.,-positionY_side3,positionZ_side3),
+			leadside4LV, "lead_side4", worldLV,  
+		 false, 0, fCheckOverlaps);
+  
+  
+
+  // end shield 
+
+  
+   ///// Draw Experimental Setup /////
+  
+   //                                        
+   // Visualization attributes
+   //
+   
+   worldLV->SetVisAttributes (G4VisAttributes::Invisible);
+   
+   G4VisAttributes* emulsionVisAtt= new G4VisAttributes();
+   emulsionVisAtt->SetVisibility(true);
+   emulsionVisAtt->SetColour(G4Colour::Yellow());
+   emulsionVisAtt->SetForceSolid(true);
+   emulsionLV->SetVisAttributes(emulsionVisAtt);
+   
+   G4VisAttributes* baseVisAtt= new G4VisAttributes();
+   baseVisAtt->SetVisibility(true);
+   baseVisAtt->SetColour(G4Colour::White());
+   baseVisAtt->SetForceSolid(true);
+   baseLV->SetVisAttributes(baseVisAtt);
+
+   
+   G4VisAttributes* cooling_boxVisAtt= new G4VisAttributes();
+   cooling_boxVisAtt->SetVisibility(true);
+   cooling_boxVisAtt->SetColour(G4Colour::Brown());
+   cooling_box_LV->SetVisAttributes(cooling_boxVisAtt);
+  
+   
+   G4VisAttributes* shieldingVisAtt= new G4VisAttributes();
+   shieldingVisAtt->SetVisibility(true);
+   shieldingVisAtt->SetColour(G4Colour::Cyan());
+   shieldingVisAtt->SetForceSolid(true);
+   //polyTop_LV->SetVisAttributes(shieldingVisAtt);
+   //polyTop2_LV->SetVisAttributes(shieldingVisAtt);
+   bot_shieldingLV->SetVisAttributes(shieldingVisAtt);
+   poly1_LV->SetVisAttributes(shieldingVisAtt);
+   poly2_LV->SetVisAttributes(shieldingVisAtt);
+   poly3_LV->SetVisAttributes(shieldingVisAtt);
+
+
+   G4VisAttributes* shieldingVisAtt2= new G4VisAttributes();
+   shieldingVisAtt2->SetVisibility(true);
+   shieldingVisAtt2->SetColour(G4Colour::Cyan());
+   shieldingVisAtt2->SetForceWireframe(true);
+   //poly1_LV->SetVisAttributes(shieldingVisAtt2);
+   //poly2_LV->SetVisAttributes(shieldingVisAtt2);
+   //poly3_LV->SetVisAttributes(shieldingVisAtt2);
+   polyTop_LV->SetVisAttributes(shieldingVisAtt2);
+   polyTop2_LV->SetVisAttributes(shieldingVisAtt2);
+   //bot_shieldingLV->SetVisAttributes(shieldingVisAtt2);
+   
+   
+   
+   //G4VisAttributes* nitrogen_boxVisAtt= new G4VisAttributes();
+   //nitrogen_boxVisAtt->SetVisibility(true);
+   //nitrogen_boxVisAtt->SetColour(G4Colour::Red());
+   //nitrogen_boxVisAtt->SetForceSolid(true);
+   //nitrogen_box_LV->SetVisAttributes(nitrogen_boxVisAtt);
+
+   G4VisAttributes* leadVisAtt= new G4VisAttributes();
+   leadVisAtt->SetVisibility(true);
+   leadVisAtt->SetColour(G4Colour::White());
+   leadVisAtt->SetForceSolid(true);
+   //leadfloorLV->SetVisAttributes(leadVisAtt);
+   //leadroofLV->SetVisAttributes(leadVisAtt);
+   leadside1LV->SetVisAttributes(leadVisAtt);
+   leadside2LV->SetVisAttributes(leadVisAtt);
+   leadside3LV->SetVisAttributes(leadVisAtt);
+   leadside4LV->SetVisAttributes(leadVisAtt);
+
+   G4VisAttributes* leadVisAtt2= new G4VisAttributes();
+   leadVisAtt2->SetVisibility(true);
+   leadVisAtt2->SetColour(G4Colour::White());
+   leadVisAtt2->SetForceWireframe(true);
+   //leadside1LV->SetVisAttributes(leadVisAtt2);
+   //leadside2LV->SetVisAttributes(leadVisAtt2);
+   //leadside3LV->SetVisAttributes(leadVisAtt2);
+   //leadside4LV->SetVisAttributes(leadVisAtt2);
+   leadfloorLV->SetVisAttributes(leadVisAtt2);
+   leadroofLV->SetVisAttributes(leadVisAtt2);
+   
+   return worldPV;
+
+}
+
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void ExN04DetectorConstruction::PrintDetectorParameters()
+{
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

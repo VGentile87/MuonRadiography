@@ -1,0 +1,11 @@
+/generator/select hepmcAscii
+#/generator/hepmcAscii/open /home/vale/Desktop/Lavoro/MuRad/muon_sea_level_100k.txt
+#/generator/hepmcAscii/open /home/vale/Desktop/MuRad_sim/spectrum/hepmuon_sea_level_10M_0.txt #pos1
+#/generator/hepmcAscii/open /home/vale/Desktop/MuRad_sim/spectrum/hepmuon_sea_level_10M_0_pos_5.txt #pos5
+/generator/hepmcAscii/open /home/vale/Desktop/MuRad_sim/spectrum/hepmuon_sea_level_10M_0_pos_3.1.txt #pos3.1
+#/generator/hepmcAscii/open /home/vale/Desktop/MuRad_sim/spectrum/hepmuon_sea_level_10M_0_pos_3.2.txt #pos3.2
+#/generator/hepmcAscii/open /home/vale/Desktop/MuRad_sim/spectrum/hepmuon_sea_level_10M_0_pos_4.1.txt #pos4.1
+#/generator/hepmcAscii/open /home/vale/Desktop/MuRad_sim/spectrum/hepmuon_sea_level_10M_0_pos_5.1.txt #pos5.1
+#/generator/hepmcAscii/open /home/vale/Desktop/MuRad_sim/spectrum/hepmuon_sea_level_10M_0_pos_5.2.txt #pos5.2
+#/generator/hepmcAscii/verbose 0
+/run/beamOn 100

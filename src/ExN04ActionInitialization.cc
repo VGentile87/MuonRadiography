@@ -1,0 +1,63 @@
+#include "ExN04ActionInitialization.hh"
+#include "ExN04PrimaryGeneratorAction.hh"
+#include "ExN04RunAction.hh"
+#include "ExN04EventAction.hh"
+#include "ExN04SteppingAction.hh"
+#include "ExN04TrackingAction.hh"
+#include "ExN04AnalysisManager.hh"
+#include "ExN04DetectorConstruction.hh"
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+ExN04ActionInitialization::ExN04ActionInitialization(ExN04DetectorConstruction* detConstruction)
+ : G4VUserActionInitialization(),
+   //fDetector(detector)
+   fDetConstruction(detConstruction)
+{}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+ExN04ActionInitialization::~ExN04ActionInitialization()
+{
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void ExN04ActionInitialization::BuildForMaster() const
+{
+  // Histo manager
+  //HistoManager*  histo = new HistoManager();
+  
+  // Actions
+  SetUserAction(new ExN04RunAction);
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+void ExN04ActionInitialization::Build() const
+{
+  // Histo manager
+  // HistoManager*  histo = new HistoManager();
+  
+  // Actions
+  //
+  SetUserAction(new ExN04PrimaryGeneratorAction(fDetConstruction));
+  
+  ExN04PrimaryGeneratorAction* fGenAction = new ExN04PrimaryGeneratorAction(fDetConstruction);
+  
+  ExN04RunAction* runAction = new ExN04RunAction();  
+  SetUserAction(runAction);
+  
+  ExN04EventAction* eventAction = new ExN04EventAction();
+  SetUserAction(eventAction);
+  
+
+  ExN04TrackingAction* trackingAction = new ExN04TrackingAction();
+  SetUserAction(trackingAction);
+
+  ExN04SteppingAction* steppingAction = new ExN04SteppingAction(fDetConstruction, eventAction,  runAction, fGenAction, trackingAction);
+  SetUserAction(steppingAction);
+
+}  
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
